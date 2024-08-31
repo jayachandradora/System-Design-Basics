@@ -68,7 +68,7 @@ Designing a scalable e-commerce platform to handle millions of concurrent users 
 
 **b. Backup and Recovery:**
    - **Regular Backups:** Schedule regular backups of databases and critical data.
-   - **Disaster Recovery Plan:** Develop and test a disaster recovery plan to ensure data integrity and service continuity in case of major failures.
+   - **Disaster Recovery Plan:** Develop and test a disaster recovery plan to ensure [data integrity](https://github.com/jayachandradora/System-Design-Basics/blob/main/Data%20Integrity%20.md) and service continuity in case of major failures.
 
 ### 8. **User Experience**
 
