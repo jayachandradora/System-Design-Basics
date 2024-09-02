@@ -1,4 +1,4 @@
-# Data Transportation Tools Apache Flumem Kafka, Nifi & Logstash
+# Data Transportation Tools Apache Flumem Kafka Nifi & Logstash
 
 When comparing Apache Flume to other data ingestion and streaming tools, it’s important to understand its unique features and how it fits into the broader ecosystem of data processing technologies. Below, I compare Apache Flume with several other popular tools: Apache Kafka, Apache NiFi, and Logstash.
 
