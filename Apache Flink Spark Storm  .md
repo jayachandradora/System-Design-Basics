@@ -20,7 +20,7 @@ Apache Flink is a powerful, open-source stream processing framework designed for
 
 - **Fault Tolerance:**
   - **Flink:** Built-in support for fault tolerance with state snapshots and distributed snapshots.
-  - **Spark:** Fault tolerance is provided by lineage information and checkpointing, but the approach differs from Flink’s state snapshots.
+  - **Spark:** Fault tolerance is provided by lineage information and [checkpointing](https://github.com/jayachandradora/System-Design-Basics/blob/main/Checkpointing%20technique.md), but the approach differs from Flink’s state snapshots.
 
 ### 2. **Apache Flink vs Apache Kafka Streams**
 
