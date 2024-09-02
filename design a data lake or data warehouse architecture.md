@@ -7,7 +7,7 @@ Designing a data lake or data warehouse architecture for analytics involves seve
 A data lake is a centralized repository that allows you to store all your structured and unstructured data at scale. It is designed to handle large volumes of data from various sources and enables complex analytics.
 
 #### **1. Data Ingestion**
-- **Batch and Real-Time Ingestion**: Implement tools to ingest data in both batch and real-time modes. Technologies like Apache Kafka, Apache Flume, and AWS Kinesis can be used for real-time data streaming, while tools like Apache Sqoop can be used for batch data ingestion.
+- **[Batch and Real-Time Ingestion](https://github.com/jayachandradora/System-Design-Basics/blob/main/Apache%20Flink%20Spark%20Storm%20%20.md)**: Implement tools to ingest data in both batch and real-time modes. Technologies like Apache Kafka, Apache Flume, and AWS Kinesis can be used for real-time data streaming, while tools like Apache Sqoop can be used for batch data ingestion.
 - **Data Connectors**: Use connectors and ETL (Extract, Transform, Load) tools to pull data from various sources such as databases, APIs, logs, and external data sources.
 
 #### **2. Data Storage**
