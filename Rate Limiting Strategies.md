@@ -506,3 +506,330 @@ Request 10 rejected (bucket full).
 ### Conclusion
 
 The **Leaky Bucket** algorithm is an effective way to handle rate limiting by ensuring that requests are processed at a constant rate while controlling bursts. The implementation in Java demonstrates how to manage incoming requests, control the flow, and reject excess requests when the bucket is full. This approach is particularly useful in systems where requests need to be handled smoothly over time, without overloading the service.
+
+### Sliding Window Rate Limiting Algorithm
+
+The **Sliding Window** rate limiting algorithm is a more sophisticated version of the **Fixed Window** algorithm. Unlike the Fixed Window, which resets the counter after a fixed period, the Sliding Window allows for a more flexible and accurate approach to limiting requests over time.
+
+In the **Sliding Window** algorithm, the window is not fixed at the beginning of a time period. Instead, the window "slides" over time, tracking requests made during the last `n` seconds, and it ensures that no more than a set number of requests are allowed within this dynamic window.
+
+### Key Concepts of Sliding Window Rate Limiting
+
+1. **Window Size**: The total time period over which requests are counted (e.g., the last 10 seconds).
+2. **Max Requests**: The maximum number of requests allowed in the window (e.g., 5 requests).
+3. **Sliding Window**: The time period over which the requests are counted is constantly updated to include only recent requests.
+
+### How Sliding Window Works
+- Instead of resetting the counter at the end of a fixed time period, the window "slides" with time. This means the requests in the last `n` seconds are considered for rate limiting.
+- New requests are allowed if they don’t exceed the maximum requests allowed in the sliding window.
+
+---
+
+### Key Steps to Implement
+
+1. **Data Structure**: Use a list or queue to store the timestamps of incoming requests.
+2. **Sliding Logic**: For each incoming request, discard timestamps older than the time window.
+3. **Request Counting**: Count the number of requests in the last `n` seconds (sliding window). If the count exceeds the limit, reject the request.
+
+### Java Implementation of Sliding Window Rate Limiting
+
+We will implement a `SlidingWindowRateLimiter` class where:
+- The window size is defined as a period in seconds (e.g., 10 seconds).
+- The maximum requests in that period are defined (e.g., 5 requests).
+
+We will use a **deque (double-ended queue)** to store the request timestamps.
+
+### SlidingWindowRateLimiter Class
+
+```java
+import java.util.LinkedList;
+import java.util.Queue;
+
+public class SlidingWindowRateLimiter {
+    private final int maxRequests;  // Maximum requests allowed in the sliding window
+    private final int windowSizeInSeconds;  // The time window size in seconds
+    private final Queue<Long> requestTimestamps;  // Stores request timestamps
+
+    // Constructor to initialize the rate limiter
+    public SlidingWindowRateLimiter(int maxRequests, int windowSizeInSeconds) {
+        this.maxRequests = maxRequests;
+        this.windowSizeInSeconds = windowSizeInSeconds;
+        this.requestTimestamps = new LinkedList<>();
+    }
+
+    // Method to check if a request can be processed
+    public boolean tryRequest() {
+        long currentTimestamp = System.currentTimeMillis() / 1000;  // Current time in seconds
+        long windowStartTimestamp = currentTimestamp - windowSizeInSeconds;
+
+        // Remove timestamps that are outside the current sliding window
+        while (!requestTimestamps.isEmpty() && requestTimestamps.peek() < windowStartTimestamp) {
+            requestTimestamps.poll();  // Remove timestamps older than the sliding window
+        }
+
+        // Check if the request count is within the limit
+        if (requestTimestamps.size() < maxRequests) {
+            requestTimestamps.offer(currentTimestamp);  // Add the current request timestamp
+            return true;  // Request allowed
+        } else {
+            return false;  // Request rejected (too many requests in the window)
+        }
+    }
+}
+```
+
+### Explanation of the Code
+
+- **`maxRequests`**: Maximum number of requests allowed in the sliding window.
+- **`windowSizeInSeconds`**: Duration of the sliding window in seconds.
+- **`requestTimestamps`**: A queue that stores the timestamps of requests.
+  
+#### `tryRequest()` Method:
+1. **Get Current Timestamp**: The current time is retrieved in seconds using `System.currentTimeMillis() / 1000`.
+2. **Sliding Window Logic**: 
+    - The `windowStartTimestamp` is calculated by subtracting `windowSizeInSeconds` from the current timestamp.
+    - We remove all timestamps from the queue that are older than the `windowStartTimestamp`.
+3. **Request Count Check**: If the number of timestamps (requests) within the window is less than the `maxRequests`, the request is allowed, and its timestamp is added to the queue.
+4. **Reject Excessive Requests**: If the number of requests exceeds `maxRequests`, the request is rejected.
+
+### Example Usage of SlidingWindowRateLimiter
+
+```java
+public class SlidingWindowRateLimiterExample {
+    public static void main(String[] args) {
+        // Create a Sliding Window rate limiter with a max of 5 requests in 10 seconds
+        SlidingWindowRateLimiter rateLimiter = new SlidingWindowRateLimiter(5, 10);
+
+        // Simulate 10 incoming requests
+        for (int i = 1; i <= 10; i++) {
+            if (rateLimiter.tryRequest()) {
+                System.out.println("Request " + i + " allowed.");
+            } else {
+                System.out.println("Request " + i + " rejected (rate limit exceeded).");
+            }
+
+            try {
+                // Simulate a delay of 1 second between requests
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+### Explanation of the Example
+
+- We create a **SlidingWindowRateLimiter** with a maximum of **5 requests** allowed within a **10-second window**.
+- We simulate **10 incoming requests**, checking if each request can be processed by calling the `tryRequest()` method.
+- Between requests, we simulate a delay of **1 second** using `Thread.sleep(1000)`. This allows us to see the sliding window in action.
+
+### Expected Output
+
+```plaintext
+Request 1 allowed.
+Request 2 allowed.
+Request 3 allowed.
+Request 4 allowed.
+Request 5 allowed.
+Request 6 rejected (rate limit exceeded).
+Request 7 rejected (rate limit exceeded).
+Request 8 rejected (rate limit exceeded).
+Request 9 rejected (rate limit exceeded).
+Request 10 rejected (rate limit exceeded).
+```
+
+### Key Notes
+
+1. **Sliding Window Behavior**: 
+    - Requests within the last `n` seconds (defined by the window size) are counted for rate limiting.
+    - The window "slides" forward as time passes, so as old requests expire, new requests within the window are counted.
+  
+2. **Queue Usage**: 
+    - A queue is used to store the request timestamps in order of arrival. This ensures that we can easily remove old requests (those outside the window) and track the count of requests in the window.
+  
+3. **Time Precision**: 
+    - Time is tracked in seconds (`System.currentTimeMillis() / 1000`) to ensure precision for rate limiting. If you need finer granularity (milliseconds), you can adjust the logic accordingly.
+
+4. **Thread-Safety**: This implementation is not thread-safe. If multiple threads are using this rate limiter concurrently, you should synchronize access to the `tryRequest()` method or use thread-safe collections like `ConcurrentLinkedQueue`.
+
+### Enhancements
+
+1. **Queue Replacement**: Instead of using a regular queue, you could use a **circular buffer** to optimize memory usage and avoid potential performance bottlenecks as the window size increases.
+   
+2. **Dynamic Rate Limiting**: You can extend the rate limiter to change the maximum requests or window size dynamically based on system load or other conditions.
+   
+3. **Logging and Metrics**: It's often useful to track how many requests are rejected and the overall usage of the rate limiter. You could add logging to track this.
+
+---
+
+### Conclusion
+
+The **Sliding Window** rate limiting algorithm is a powerful and flexible approach to controlling the rate of requests over time. It allows for smoother handling of bursts compared to the Fixed Window, while still enforcing a strict limit on requests within a sliding window period.
+
+This Java implementation demonstrates how to manage a dynamic window of requests, rejecting excessive requests when the rate limit is exceeded and ensuring requests are processed efficiently. This approach is commonly used in API rate limiting and distributed systems where rate control is necessary.
+
+### Fixed Window Rate Limiting Algorithm
+
+The **Fixed Window** rate limiting algorithm is a straightforward approach to controlling the number of requests that a user can make within a fixed time period (e.g., 10 requests per minute). Once the time window expires, the count resets, and a new time window begins.
+
+### Key Concepts of Fixed Window Rate Limiting
+
+1. **Window Size**: The fixed time period over which requests are counted (e.g., 1 minute).
+2. **Max Requests**: The maximum number of requests allowed within a specific window.
+3. **Resetting**: After each time window (e.g., 1 minute), the request count is reset.
+
+### How Fixed Window Works:
+- Requests are tracked within the fixed window.
+- Once the number of requests within that window exceeds the limit, further requests are rejected.
+- After the time window expires, the counter resets, allowing for new requests.
+
+### Steps for Fixed Window Rate Limiting:
+
+1. **Start Time of the Window**: The fixed window starts at a specific point in time (e.g., the beginning of each minute).
+2. **Request Count**: Track the number of requests in the current window.
+3. **Rate Limit Exceeded**: If the count exceeds the limit, reject further requests.
+4. **Window Reset**: When the window expires, reset the count and allow new requests.
+
+---
+
+### Java Implementation of Fixed Window Rate Limiting
+
+We will create a `FixedWindowRateLimiter` class that:
+- Accepts the **max requests** allowed and the **window size** (in seconds).
+- Tracks the count of requests within the current time window.
+- Resets the counter once the window expires.
+
+### FixedWindowRateLimiter Class Implementation
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class FixedWindowRateLimiter {
+    private final int maxRequests;        // Maximum number of requests allowed in the window
+    private final int windowSizeInSeconds; // Duration of the time window in seconds
+    private long windowStartTimestamp;    // Timestamp for the start of the current window
+    private AtomicInteger requestCount;   // Count of requests in the current window
+
+    // Constructor to initialize the rate limiter
+    public FixedWindowRateLimiter(int maxRequests, int windowSizeInSeconds) {
+        this.maxRequests = maxRequests;
+        this.windowSizeInSeconds = windowSizeInSeconds;
+        this.windowStartTimestamp = System.currentTimeMillis() / 1000; // current time in seconds
+        this.requestCount = new AtomicInteger(0);
+    }
+
+    // Method to check if a request can be processed
+    public boolean tryRequest() {
+        long currentTimestamp = System.currentTimeMillis() / 1000;  // Current time in seconds
+
+        // Check if the current time is beyond the window
+        if (currentTimestamp >= windowStartTimestamp + windowSizeInSeconds) {
+            // Window has expired, reset the counter and update the window start timestamp
+            windowStartTimestamp = currentTimestamp;
+            requestCount.set(0);
+        }
+
+        // Check if the number of requests is within the allowed limit
+        if (requestCount.get() < maxRequests) {
+            requestCount.incrementAndGet();  // Increment the request count
+            return true;  // Request allowed
+        } else {
+            return false;  // Request rejected (rate limit exceeded)
+        }
+    }
+}
+```
+
+### Explanation of the Code
+
+- **`maxRequests`**: Defines the maximum number of requests allowed in the fixed window.
+- **`windowSizeInSeconds`**: Defines the duration of the window (in seconds).
+- **`windowStartTimestamp`**: Stores the start time of the current window (in seconds).
+- **`requestCount`**: Tracks the number of requests in the current window using an `AtomicInteger` for thread-safety.
+  
+#### `tryRequest()` Method:
+
+1. **Current Timestamp**: We get the current time in seconds.
+2. **Window Expiry Check**: If the current time is beyond the window's expiration time (`windowStartTimestamp + windowSizeInSeconds`), we reset the counter and start a new window.
+3. **Request Count Check**: If the number of requests is less than the allowed maximum (`maxRequests`), the request is allowed, and the counter is incremented.
+4. **Reject Excessive Requests**: If the request count exceeds the limit, the request is rejected.
+
+---
+
+### Example Usage of FixedWindowRateLimiter
+
+```java
+public class FixedWindowRateLimiterExample {
+    public static void main(String[] args) {
+        // Create a Fixed Window rate limiter with a max of 5 requests in a 10-second window
+        FixedWindowRateLimiter rateLimiter = new FixedWindowRateLimiter(5, 10);
+
+        // Simulate 10 incoming requests
+        for (int i = 1; i <= 10; i++) {
+            if (rateLimiter.tryRequest()) {
+                System.out.println("Request " + i + " allowed.");
+            } else {
+                System.out.println("Request " + i + " rejected (rate limit exceeded).");
+            }
+
+            try {
+                // Simulate a delay of 1 second between requests
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+### Explanation of the Example
+
+- We create a **FixedWindowRateLimiter** with a maximum of **5 requests** allowed within a **10-second window**.
+- We simulate **10 incoming requests** and check if each request can be processed by calling the `tryRequest()` method.
+- Between requests, we simulate a delay of **1 second** using `Thread.sleep(1000)`. This will help demonstrate the behavior of the rate limiter.
+
+### Expected Output
+
+```plaintext
+Request 1 allowed.
+Request 2 allowed.
+Request 3 allowed.
+Request 4 allowed.
+Request 5 allowed.
+Request 6 rejected (rate limit exceeded).
+Request 7 rejected (rate limit exceeded).
+Request 8 rejected (rate limit exceeded).
+Request 9 rejected (rate limit exceeded).
+Request 10 rejected (rate limit exceeded).
+```
+
+### Key Notes
+
+1. **Window Reset**: After every window (e.g., 10 seconds), the request counter is reset, allowing new requests to be processed.
+2. **Request Count**: Requests are counted for each fixed window, and the counter is checked before processing any new request.
+3. **AtomicInteger**: We use `AtomicInteger` to safely update the request count in a multi-threaded environment. If multiple threads try to increment the count at the same time, this ensures thread safety.
+
+4. **Fixed Window Limitation**: One limitation of this approach is that it may cause sudden bursts of requests when the window resets, as all requests within the window are counted together. This could result in spikes in traffic that are not as smooth as a **Sliding Window** approach, which is more dynamic.
+
+---
+
+### Enhancements
+
+1. **Better Burst Handling**: To mitigate burst issues, you could combine this fixed window with other strategies like queuing requests or introducing some delay to smooth out the request flow.
+   
+2. **Distributed Systems**: In distributed systems (e.g., microservices), you would typically store the rate limit state (e.g., the request count and window start time) in a centralized cache (e.g., Redis) so that the rate limiter works across multiple instances.
+
+3. **Logging and Metrics**: It’s useful to log and monitor the number of allowed/rejected requests. This helps in debugging and ensures that you are enforcing rate limits effectively.
+
+4. **Custom Time Window**: Instead of a fixed time window (e.g., 10 seconds), you could use a configurable time unit such as minutes or hours depending on your use case.
+
+---
+
+### Conclusion
+
+The **Fixed Window** rate limiting algorithm is a simple and effective approach for controlling the rate of requests over time. It ensures that no more than a specified number of requests are allowed in a fixed time period. This approach works well for many scenarios, although it can result in sudden bursts of requests when the window resets.
+
+This Java implementation demonstrates how to track requests, enforce rate limits, and handle window expiry efficiently. For applications with more complex traffic patterns, more advanced techniques like **Sliding Window** or **Token Bucket** may be more appropriate.
